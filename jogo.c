@@ -1,27 +1,11 @@
 
-// gcc jogoteste.c -o jogo -lSDL2 -lSDL2_image
+// gcc jogo.c -o jogo -lSDL2 -lSDL2_image -lSDL2_ttf
 
 /*
 tabela de erros:
     1 erro de criação de textura
     2 erro de criação de surface
-
-tela inicial
-    nome do jogo
-    menu
-        jogar
-            chamar função que inicia o jogo
-        como jogar
-            abrir imagem com os controles do jogo
-        ranking
-            ler arquivo de ranking das partidas
-        creditos
-            nome dos participantes
-fim menu
-
-afazeres
-    criar documento para armazenar e ler o ranking
- */
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,18 +14,24 @@ afazeres
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 #define JANELA_W (700)
 #define JANELA_H (700)
 
 #define FPS (30)	//quadros por segundo
-#define SetBonus (10) //a cada quantos segundos vem o bonus
+#define SetBonus (15) //a cada quantos segundos vem o bonus
 #define VIDAS (5)
 #define Velocidade_Inicial (13)
 
 SDL_Window* janela = NULL;
 SDL_Renderer* render = NULL;
 SDL_Surface* surface = NULL;
+
+TTF_Font * font = NULL;
+SDL_Color branco = { 255, 255, 255 };
+SDL_Surface * surface_texto = NULL;
+SDL_Texture * texture_texto = NULL;
 
 SDL_Surface* background_menu = NULL;
 SDL_Texture* textura_fundo_menu = NULL;
@@ -62,6 +52,12 @@ SDL_Surface* surface_planeta = NULL;
 SDL_Texture* golden_record = NULL;
 SDL_Surface* surface_Golden_Record = NULL;
 
+SDL_Texture* coracao_1 = NULL;
+SDL_Texture* coracao_2 = NULL;
+SDL_Texture* coracao_3 = NULL;
+SDL_Texture* coracao_4 = NULL;
+SDL_Texture* coracao_5 = NULL;
+SDL_Surface* surface_coracao = NULL;
 
 SDL_Surface* background_creditos = NULL;
 SDL_Texture* textura_fundo_creditos = NULL;
@@ -71,6 +67,15 @@ SDL_Texture* textura_fundo_como_jogar = NULL;
 
 SDL_Surface* background_ranking = NULL;
 SDL_Texture* textura_fundo_ranking = NULL;
+
+typedef struct 
+{
+    int id1, id2, id3;
+    int pts1, pts2, pts3;
+    int id_final;
+} RankingType;
+
+RankingType podio;
 
 void menu(void);
 
@@ -92,13 +97,40 @@ void Erro(int codigo){
     return;
 }
 
-void jogo(void){    
+void jogo(void){
+	int identificacao = podio.id_final += 1;
 	// tamanho e posição da nave
-    SDL_Rect dest;
-    SDL_Rect rGolden;
-    SDL_Rect rPlaneta;
-    SDL_Rect rAsteroide;
+    SDL_Rect dest, rGolden, rPlaneta, rAsteroide, rC1, rC2, rC3, rC4, rC5;
 
+    char buffer[40];
+    SDL_Surface* Superficie_jogo = NULL;
+
+    SDL_Texture* Pontos_textura = NULL;
+    SDL_Rect rPontos;
+    rPontos.h = 0;
+    rPontos.w = 0;
+    rPontos.x = 540;
+    rPontos.y = 430;
+
+    SDL_Texture* Pontos_textura_2 = NULL;
+    SDL_Rect rPontos2;
+    rPontos2.h = 0;
+    rPontos2.w = 0;
+    rPontos2.x = 540;
+    rPontos2.y = 455;
+
+    SDL_Texture* Id_textura = NULL;
+    SDL_Rect rId;
+    rId.h = 0;
+    rId.w = 0;
+    rId.x = 540;
+    rId.y = 480;
+
+    sprintf(buffer, "pontos:");
+    Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+    Pontos_textura = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+    SDL_QueryTexture(Pontos_textura, NULL, NULL, &rPontos.w, &rPontos.h);
+        
     srand(time(NULL));
 
     dest.w = 75;//define o tamanho da nave
@@ -112,6 +144,29 @@ void jogo(void){
     rAsteroide.h = 75;
     rPlaneta.w = 175;
     rPlaneta.h = 175;
+
+    rC1.w = 75;
+    rC1.h = 75;
+    rC2.w = 75;
+    rC2.h = 75;
+    rC3.w = 75;
+    rC3.h = 75;
+    rC4.w = 75;
+    rC4.h = 75;
+    rC5.w = 75;
+    rC5.h = 75;
+
+    rC1.x = 575;
+    rC2.x = 575;
+    rC3.x = 575;
+    rC4.x = 575;
+    rC5.x = 575;
+
+    rC1.y = 25;
+    rC2.y = 100;
+    rC3.y = 175;
+    rC4.y = 250;
+    rC5.y = 325;
 
     rGolden.x = rand() % 450; //inicializa a posição horizonal do bonus aleatoriamente
     rGolden.y = -80;
@@ -132,7 +187,7 @@ void jogo(void){
             switch (event.type)
             {
             case SDL_QUIT:
-                encerrar = 1;
+                return;
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.scancode)
@@ -171,7 +226,7 @@ void jogo(void){
         //relogio
         tempo_ant = tempo;
         tempo = SDL_GetTicks()/1000;
-        if(tempo > tempo_ant)   printf("%d segundos   %d pontos   %d Vidas\n", tempo, pontos, vidas);
+        if(tempo > tempo_ant)   printf("%d pts  %d Id\n", pontos, identificacao);
 
         //movimentação nave
         velocidade = 0;
@@ -199,7 +254,7 @@ void jogo(void){
         if(rPlaneta.y > 850){
             pontos += 20;
             rPlaneta.x = rand() % 350;
-            rPlaneta.y = -rPlaneta.h;
+            rPlaneta.y = -rPlaneta.h-100;
         }
 
         //impacto com elementos
@@ -217,7 +272,6 @@ void jogo(void){
         }
 
         //bonus
-
         bonus = SDL_TICKS_PASSED(SDL_GetTicks(), tempo_bonus);
 
         if(SDL_HasIntersection(&dest, &rGolden)){
@@ -237,34 +291,133 @@ void jogo(void){
             rGolden.x = rand() % 450;
             rGolden.y = -80;
         }
+
+        //info de tela
+        sprintf(buffer, "%d", pontos);
+        Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+        Pontos_textura_2 = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+        SDL_QueryTexture(Pontos_textura_2, NULL, NULL, &rPontos2.w, &rPontos2.h);
+        
+        sprintf(buffer, "ID: %d", identificacao);
+        Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+        Id_textura = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+        SDL_QueryTexture(Id_textura, NULL, NULL, &rId.w, &rId.h);
+        
+        //pontos
+        //id
+
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_jogo, NULL, NULL);
         SDL_RenderCopy(render, asteroide, NULL, &rAsteroide);
         SDL_RenderCopy(render, planeta, NULL, &rPlaneta);
         SDL_RenderCopy(render, nave, NULL, &dest);
         SDL_RenderCopy(render, golden_record, NULL, &rGolden);
+        if(vidas >= 1)	SDL_RenderCopy(render, coracao_1, NULL, &rC1);
+        if(vidas >= 2)	SDL_RenderCopy(render, coracao_2, NULL, &rC2);
+        if(vidas >= 3)	SDL_RenderCopy(render, coracao_3, NULL, &rC3);
+        if(vidas >= 4)	SDL_RenderCopy(render, coracao_4, NULL, &rC4);
+        if(vidas >= 5)	SDL_RenderCopy(render, coracao_5, NULL, &rC5);
+        SDL_RenderCopy(render, Pontos_textura, NULL, &rPontos);
+        SDL_RenderCopy(render, Pontos_textura_2, NULL, &rPontos2);
+        SDL_RenderCopy(render, Id_textura, NULL, &rId);
         SDL_RenderPresent(render);
 
         SDL_Delay(1000/FPS);
     }
+    if(pontos >= podio.pts1){
+		podio.pts3 = podio.pts2;
+		podio.id3 = podio.id2;
+		podio.pts2 = podio.pts1;
+		podio.id2 = podio.id1;
+		podio.pts1 = pontos;
+		podio.id1 = identificacao;
+	}
+	else if(pontos >= podio.pts2 && pontos < podio.pts1){
+	   		podio.pts3 = podio.pts2;
+	    	podio.id3 = podio.id2;
+	    	podio.pts2 = pontos;
+	    	podio.id2 = identificacao;
+	}
+	else if(pontos >= podio.pts3 && pontos < podio.pts2 && pontos < podio.pts1){
+	   		podio.pts3 = pontos;
+	    	podio.id3 = identificacao;
+	}
+    SDL_FreeSurface(Superficie_jogo);
+    return;
 }
 
 void ranking(void){
-    while(1){
+        char buffer[40];
+        SDL_Surface* Superficie = NULL;
+
+        SDL_Texture* Titulo_textura = NULL;
+        SDL_Rect rTitulo;
+        rTitulo.h = 0;
+        rTitulo.w = 0;
+        rTitulo.x = 180;
+        rTitulo.y = 175;
+
+        SDL_Texture* primeiro_textura = NULL;
+        SDL_Rect rPrimeiro;
+        rPrimeiro.h = 0;
+        rPrimeiro.w = 0;
+        rPrimeiro.x = 180;
+        rPrimeiro.y = 200;
+
+        SDL_Texture* segundo_textura = NULL;
+        SDL_Rect rSegundo;
+        rSegundo.h = 0;
+        rSegundo.w = 0;
+        rSegundo.x = 180;
+        rSegundo.y = 225;
+
+        SDL_Texture* terceiro_textura = NULL;
+        SDL_Rect rTerceiro;
+        rTerceiro.h = 0;
+        rTerceiro.w = 0;
+        rTerceiro.x = 180;
+        rTerceiro.y = 250;
+
+    	while(1){
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {   
             switch (event.type)
             {
             case SDL_KEYDOWN:
+                SDL_FreeSurface(Superficie);
                 return;
                 break;
             }
         }
+        sprintf(buffer, "pos  Id  Pontos");
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        Titulo_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(Titulo_textura, NULL, NULL, &rTitulo.w, &rTitulo.h);
+        
+        sprintf(buffer, "1    %d  %d", podio.id1, podio.pts1);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        primeiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(primeiro_textura, NULL, NULL, &rPrimeiro.w, &rPrimeiro.h);
+        
+        sprintf(buffer, "2    %d  %d", podio.id2, podio.pts2);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        segundo_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(segundo_textura, NULL, NULL, &rSegundo.w, &rSegundo.h);
+        
+        sprintf(buffer, "3    %d  %d", podio.id3, podio.pts3);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        terceiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(terceiro_textura, NULL, NULL, &rTerceiro.w, &rTerceiro.h);
+        
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_ranking, NULL, NULL);
+        SDL_RenderCopy(render, Titulo_textura, NULL, &rTitulo);
+        SDL_RenderCopy(render, primeiro_textura, NULL, &rPrimeiro);
+        SDL_RenderCopy(render, segundo_textura, NULL, &rSegundo);
+        SDL_RenderCopy(render, terceiro_textura, NULL, &rTerceiro);
         SDL_RenderPresent(render);
-    }
+    	}
 }
 
 void controles(void){
@@ -394,7 +547,7 @@ int main(void){
         return 1;
     }
 
-    janela = SDL_CreateWindow("RURALINO",SDL_WINDOWPOS_CENTERED,0,JANELA_W,JANELA_H,0);
+    janela = SDL_CreateWindow("Voyager 1977",SDL_WINDOWPOS_CENTERED,0,JANELA_W,JANELA_H,0);
     if (!janela){
         printf("error creating window: %s\n", SDL_GetError());
         SDL_Quit();
@@ -408,6 +561,10 @@ int main(void){
         SDL_Quit();
         return 1;
     }
+    
+    TTF_Init();
+
+    font = TTF_OpenFont("fonte.ttf", 25);
     
     surface_menu = IMG_Load("caixa.png");//diretirio seletor
     if (!surface_menu){
@@ -540,7 +697,38 @@ int main(void){
         return 1;
     }
 
+    surface_coracao = IMG_Load("coracao.png");
+    if (!surface_coracao){
+        Erro(2);
+        return 1;
+    }
 
+    coracao_1 = SDL_CreateTextureFromSurface(render, surface_coracao);
+    SDL_FreeSurface(surface_coracao);
+    if (!coracao_1){
+        Erro(1);
+        return 1;
+    }
+
+    coracao_2 = coracao_1;
+    coracao_3 = coracao_1;
+    coracao_4 = coracao_1;
+    coracao_5 = coracao_1;
+
+    //recolhe os dados do arquivo e insere na variavel global Podio
+    FILE * pont_arq;
+    pont_arq = fopen( "registro.bin", "rb");//leitura do arquivo
+    if( !pont_arq )	printf("arquivo não aberto\n");
+    fread( &podio, sizeof(RankingType), 1, pont_arq );
+    fclose(pont_arq);
+    
     menu();
+    
+    pont_arq = fopen( "registro.bin", "wb");//Escrita do arquivo
+    if( !pont_arq )	printf("arquivo não salvo\n");
+    fwrite( &podio, sizeof(RankingType), 1, pont_arq );
+    fclose(pont_arq);
+
+
     return 0;
 }
