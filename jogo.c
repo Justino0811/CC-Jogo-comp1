@@ -162,6 +162,11 @@ void jogo(void){
     rId.x = 540;
     rId.y = 480;
 
+    SDL_Texture* FimDeJogo_textura = NULL;
+    SDL_Rect rFDJ;
+    rFDJ.h = 0;
+    rFDJ.w = 0;
+
     sprintf(buffer, "pontos:");
     Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
     Pontos_textura = SDL_CreateTextureFromSurface(render, Superficie_jogo);
@@ -208,7 +213,7 @@ void jogo(void){
     rGolden.y = -80;
 
     int velocidade = 0, pontos = 0, vidas = VIDAS, SPEED = Velocidade_Inicial;
-    bool left = false, right = false, bonus, impacto = false;
+    bool left = false, right = false, bonus;
 
     // definido para 1 quando o botão de fechar a janela é pressionado
     int encerrar = 0;
@@ -288,7 +293,7 @@ void jogo(void){
             rPlaneta.y = -rPlaneta.h-100;
         }
 
-        //impacto com elementos
+        //impactos com elementos
         if(impacto_detection( rAsteroide, dest)){
         	Mix_PlayChannel( -1, jogo_som, 0 );
             --vidas;
@@ -358,6 +363,57 @@ void jogo(void){
         SDL_Delay(1000/FPS);
     }
     
+    encerrar = 0;
+
+    while(!encerrar){ //tela de fim de jogo
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
+        {   
+            switch (event.type)
+            {
+            case SDL_QUIT:
+                return;
+                break;
+            case SDL_KEYDOWN:
+               switch (event.key.keysym.scancode)
+                {
+                case SDL_SCANCODE_ESCAPE:
+                    encerrar = 1;
+                    break;         
+                }
+                break;
+            }
+        }
+
+        //info de tela
+        sprintf(buffer, "%d", pontos);
+        Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+        Pontos_textura_2 = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+        SDL_QueryTexture(Pontos_textura_2, NULL, NULL, &rPontos2.w, &rPontos2.h);
+        
+        sprintf(buffer, "ID: %d", identificacao);
+        Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+        Id_textura = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+        SDL_QueryTexture(Id_textura, NULL, NULL, &rId.w, &rId.h);
+        
+        sprintf(buffer, "FIM DE JOGO: Esc para sair!");
+        Superficie_jogo = TTF_RenderText_Solid(font, buffer, branco);
+        FimDeJogo_textura = SDL_CreateTextureFromSurface(render, Superficie_jogo);
+        SDL_QueryTexture(FimDeJogo_textura, NULL, NULL, &rFDJ.w, &rFDJ.h);
+        rFDJ.x = (700 - rFDJ.w)/2;   
+        rFDJ.y = (700 - rFDJ.h)/2;   
+        
+        SDL_RenderClear(render);
+        SDL_RenderCopy(render, textura_fundo_jogo, NULL, NULL);
+        SDL_RenderCopy(render, Pontos_textura, NULL, &rPontos);
+        SDL_RenderCopy(render, Pontos_textura_2, NULL, &rPontos2);
+        SDL_RenderCopy(render, Id_textura, NULL, &rId);
+        SDL_RenderCopy(render, FimDeJogo_textura, NULL, &rFDJ);
+        SDL_RenderPresent(render);
+
+        SDL_Delay(1000/FPS);
+    }
+
     if(pontos >= podio.J1.pts){
 		podio.J5 = podio.J4;
 		podio.J4 = podio.J3;
