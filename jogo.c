@@ -8,7 +8,7 @@ tabela de erros:
 
     nome no ranking
     manual do jogador
-    
+    animação impacto com planeta
 */
 
 #include <stdio.h>
