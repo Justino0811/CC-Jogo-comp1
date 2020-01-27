@@ -24,6 +24,7 @@ afazeres
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_image.h>
@@ -31,7 +32,8 @@ afazeres
 #define JANELA_W (700)
 #define JANELA_H (700)
 
-#define FPS (30)
+#define SPEED (13) 
+#define FPS (30)	//quadros por segundo
 
 SDL_Window* janela = NULL;
 SDL_Renderer* render = NULL;
@@ -44,6 +46,8 @@ SDL_Surface* surface_menu = NULL;
 
 SDL_Surface* background_jogo = NULL;
 SDL_Texture* textura_fundo_jogo = NULL;
+SDL_Texture* nave = NULL;
+SDL_Surface* surface_nave = NULL;
 
 SDL_Surface* background_creditos = NULL;
 SDL_Texture* textura_fundo_creditos = NULL;
@@ -75,20 +79,79 @@ void Erro(int codigo){
 }
 
 void jogo(void){    
-    while(1){
+	// tamanho e posição da nave
+    SDL_Rect dest;
+    SDL_QueryTexture(nave, NULL, NULL, &dest.w, &dest.h);
+    dest.w = 75;
+    dest.h = 75;
+
+    dest.x = 262;
+    dest.y = 610;
+
+    int velocidade;
+    bool left;
+    bool right;
+
+    // definido para 1 quando o botão de fechar a janela é pressionado
+    int encerrar = 0;
+
+    while(!encerrar){
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {   
             switch (event.type)
             {
+            case SDL_QUIT:
+                encerrar = 1;
+                break;
             case SDL_KEYDOWN:
-                return;
+                switch (event.key.keysym.scancode)
+                {
+                case SDL_SCANCODE_A:
+                case SDL_SCANCODE_LEFT:
+                    left = true;
+                    break;
+                case SDL_SCANCODE_D:
+                case SDL_SCANCODE_RIGHT:
+                    right = true;
+                    break;               
+                }
+                break;
+            case SDL_KEYUP:
+                switch (event.key.keysym.scancode)
+                {
+                case SDL_SCANCODE_A:
+                case SDL_SCANCODE_LEFT:
+                    left = false;
+                    break;
+                case SDL_SCANCODE_D:
+                case SDL_SCANCODE_RIGHT:
+                    right = false;
+                    break;
+                }
                 break;
             }
         }
+
+        //movimentação
+        velocidade = 0;
+        if(left && !right)
+        	velocidade = -SPEED;
+        if(!left && right)
+        	velocidade = SPEED;
+
+        dest.x += velocidade;
+
+        //colisão
+        if(dest.x < 0)	dest.x = 0;
+        if(dest.x > 525 -dest.w)	dest.x = 525 -dest.w;
+
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_jogo, NULL, NULL);
+        SDL_RenderCopy(render, nave, NULL, &dest);
         SDL_RenderPresent(render);
+
+        SDL_Delay(1000/FPS);
     }
 }
 
@@ -320,6 +383,19 @@ int main(void){
     textura_fundo_jogo = SDL_CreateTextureFromSurface(render, background_jogo);
     SDL_FreeSurface(background_jogo);
     if (!textura_fundo_jogo){
+        Erro(1);
+        return 1;
+    }
+
+    surface_nave = IMG_Load("voyager.png");
+    if (!surface_nave){
+        Erro(2);
+        return 1;
+    }
+
+    nave = SDL_CreateTextureFromSurface(render, surface_nave);
+    SDL_FreeSurface(surface_nave);
+    if (!nave){
         Erro(1);
         return 1;
     }
