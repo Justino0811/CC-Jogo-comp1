@@ -1,20 +1,25 @@
 
-// gcc jogo.c -o jogo -lSDL2 -lSDL2_image -lSDL2_ttf
+// gcc jogo.c -o jogo -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
 
 /*
 tabela de erros:
     1 erro de criação de textura
     2 erro de criação de surface
+
+pagina com o id e os pontos do jogador
+
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 
 #define JANELA_W (700)
 #define JANELA_H (700)
@@ -27,6 +32,11 @@ tabela de erros:
 SDL_Window* janela = NULL;
 SDL_Renderer* render = NULL;
 SDL_Surface* surface = NULL;
+
+Mix_Music* musica = NULL;
+Mix_Chunk* bonus_som = NULL;
+Mix_Chunk* menu_som = NULL;
+Mix_Chunk* jogo_som = NULL;
 
 TTF_Font * font = NULL;
 SDL_Color branco = { 255, 255, 255 };
@@ -68,10 +78,16 @@ SDL_Texture* textura_fundo_como_jogar = NULL;
 SDL_Surface* background_ranking = NULL;
 SDL_Texture* textura_fundo_ranking = NULL;
 
+
 typedef struct 
 {
-    int id1, id2, id3;
-    int pts1, pts2, pts3;
+    int id;
+    int pts;
+} JogadorType;
+
+typedef struct 
+{
+	JogadorType J1, J2, J3, J4, J5;
     int id_final;
 } RankingType;
 
@@ -95,6 +111,26 @@ void Erro(int codigo){
         break;
     }
     return;
+}
+
+bool impacto_detection(SDL_Rect obj1, SDL_Rect obj2){
+	int x1, x2, y1, y2, r1, r2;
+
+	x1 = obj1.x + obj1.w/2;
+	y1 = obj1.y + obj1.h/2;
+
+	x2 = obj2.x + obj2.w/2;
+	y2 = obj2.y + obj2.h/2;
+
+	r1 = obj1.w/2;
+	r2 = obj2.w/2;
+
+	double distancia = sqrt( ((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)) );
+
+	if(distancia <= (r1+r2))
+		return true;
+	else
+		return false;
 }
 
 void jogo(void){
@@ -223,11 +259,6 @@ void jogo(void){
 
         if(vidas < 0)   encerrar = 1;
 
-        //relogio
-        tempo_ant = tempo;
-        tempo = SDL_GetTicks()/1000;
-        if(tempo > tempo_ant)   printf("%d pts  %d Id\n", pontos, identificacao);
-
         //movimentação nave
         velocidade = 0;
         if(left && !right)
@@ -258,13 +289,15 @@ void jogo(void){
         }
 
         //impacto com elementos
-        if(SDL_HasIntersection(&dest, &rAsteroide)){
+        if(impacto_detection( rAsteroide, dest)){
+        	Mix_PlayChannel( -1, jogo_som, 0 );
             --vidas;
             pontos -= 20;
             rAsteroide.y = -rAsteroide.h;
             rAsteroide.x = rand() % 450;
         }
-        if(SDL_HasIntersection(&dest, &rPlaneta)){
+        if(impacto_detection( rPlaneta, dest)){
+        	Mix_PlayChannel( -1, jogo_som, 0 );
             --vidas;
             pontos -= 30;
             rPlaneta.y = -rPlaneta.h;
@@ -275,10 +308,10 @@ void jogo(void){
         bonus = SDL_TICKS_PASSED(SDL_GetTicks(), tempo_bonus);
 
         if(SDL_HasIntersection(&dest, &rGolden)){
+        	Mix_PlayChannel( -1, bonus_som, 0 );
             SPEED += 5;
             pontos += 500;
             rGolden.y = 800;
-            printf("bonus\n");
         }
 
         if(bonus){
@@ -324,24 +357,38 @@ void jogo(void){
 
         SDL_Delay(1000/FPS);
     }
-    if(pontos >= podio.pts1){
-		podio.pts3 = podio.pts2;
-		podio.id3 = podio.id2;
-		podio.pts2 = podio.pts1;
-		podio.id2 = podio.id1;
-		podio.pts1 = pontos;
-		podio.id1 = identificacao;
+    
+    if(pontos >= podio.J1.pts){
+		podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3 = podio.J2;
+		podio.J2 = podio.J1;
+		podio.J1.id = identificacao;
+		podio.J1.pts = pontos;
 	}
-	else if(pontos >= podio.pts2 && pontos < podio.pts1){
-	   		podio.pts3 = podio.pts2;
-	    	podio.id3 = podio.id2;
-	    	podio.pts2 = pontos;
-	    	podio.id2 = identificacao;
+	else if(pontos >= podio.J2.pts){
+	   	podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3 = podio.J2;
+		podio.J2.id = identificacao;
+		podio.J2.pts = pontos;
 	}
-	else if(pontos >= podio.pts3 && pontos < podio.pts2 && pontos < podio.pts1){
-	   		podio.pts3 = pontos;
-	    	podio.id3 = identificacao;
+	else if(pontos >= podio.J3.pts){
+	   	podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3.id = identificacao;
+		podio.J3.pts = pontos;
 	}
+	else if(pontos >= podio.J4.pts){
+		podio.J5 = podio.J4;
+		podio.J4.id = identificacao;
+		podio.J4.pts = pontos;
+	}
+	else if(pontos >= podio.J5.pts){
+		podio.J5.id = identificacao;
+		podio.J5.pts = pontos;
+	}
+
     SDL_FreeSurface(Superficie_jogo);
     return;
 }
@@ -361,7 +408,7 @@ void ranking(void){
         SDL_Rect rPrimeiro;
         rPrimeiro.h = 0;
         rPrimeiro.w = 0;
-        rPrimeiro.x = 180;
+        rPrimeiro.x = 187;
         rPrimeiro.y = 200;
 
         SDL_Texture* segundo_textura = NULL;
@@ -377,6 +424,20 @@ void ranking(void){
         rTerceiro.w = 0;
         rTerceiro.x = 180;
         rTerceiro.y = 250;
+
+        SDL_Texture* quarto_textura = NULL;
+        SDL_Rect rQuarto;
+        rQuarto.h = 0;
+        rQuarto.w = 0;
+        rQuarto.x = 180;
+        rQuarto.y = 275;
+
+        SDL_Texture* quinto_textura = NULL;
+        SDL_Rect rQuinto;
+        rQuinto.h = 0;
+        rQuinto.w = 0;
+        rQuinto.x = 180;
+        rQuinto.y = 300;
 
     	while(1){
         SDL_Event event;
@@ -395,20 +456,30 @@ void ranking(void){
         Titulo_textura = SDL_CreateTextureFromSurface(render, Superficie);
         SDL_QueryTexture(Titulo_textura, NULL, NULL, &rTitulo.w, &rTitulo.h);
         
-        sprintf(buffer, "1    %d  %d", podio.id1, podio.pts1);
+        sprintf(buffer, "1    %d  %d", podio.J1.id, podio.J1.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
         primeiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
         SDL_QueryTexture(primeiro_textura, NULL, NULL, &rPrimeiro.w, &rPrimeiro.h);
         
-        sprintf(buffer, "2    %d  %d", podio.id2, podio.pts2);
+        sprintf(buffer, "2    %d  %d", podio.J2.id, podio.J2.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
         segundo_textura = SDL_CreateTextureFromSurface(render, Superficie);
         SDL_QueryTexture(segundo_textura, NULL, NULL, &rSegundo.w, &rSegundo.h);
         
-        sprintf(buffer, "3    %d  %d", podio.id3, podio.pts3);
+        sprintf(buffer, "3    %d  %d", podio.J3.id, podio.J3.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
         terceiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
         SDL_QueryTexture(terceiro_textura, NULL, NULL, &rTerceiro.w, &rTerceiro.h);
+
+        sprintf(buffer, "4    %d  %d", podio.J4.id, podio.J4.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        quarto_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(quarto_textura, NULL, NULL, &rQuarto.w, &rQuarto.h);
+
+        sprintf(buffer, "5    %d  %d", podio.J5.id, podio.J5.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        quinto_textura = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(quinto_textura, NULL, NULL, &rQuinto.w, &rQuinto.h);
         
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_ranking, NULL, NULL);
@@ -416,6 +487,8 @@ void ranking(void){
         SDL_RenderCopy(render, primeiro_textura, NULL, &rPrimeiro);
         SDL_RenderCopy(render, segundo_textura, NULL, &rSegundo);
         SDL_RenderCopy(render, terceiro_textura, NULL, &rTerceiro);
+        SDL_RenderCopy(render, quarto_textura, NULL, &rQuarto);
+        SDL_RenderCopy(render, quinto_textura, NULL, &rQuinto);
         SDL_RenderPresent(render);
     	}
 }
@@ -478,6 +551,7 @@ void menu(void){
                 return;
                 break;
             case SDL_KEYDOWN:
+            	Mix_PlayChannel( -1, menu_som, 0 );
                 switch (event.key.keysym.scancode){
                 case SDL_SCANCODE_DOWN:
                     seletor++;
@@ -566,6 +640,18 @@ int main(void){
 
     font = TTF_OpenFont("fonte.ttf", 25);
     
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+
+    musica = Mix_LoadMUS("Blue Space v0_96.wav");
+    bonus_som = Mix_LoadWAV("Picked Coin Echo 2.wav");
+    menu_som = Mix_LoadWAV("Menu Selection Click.wav");
+    jogo_som = Mix_LoadWAV("8bit_bomb_explosion.wav");
+
+    Mix_VolumeChunk(jogo_som, 48);
+
+    Mix_PlayMusic( musica, -1 );
+    Mix_VolumeMusic(MIX_MAX_VOLUME/4);
+
     surface_menu = IMG_Load("caixa.png");//diretirio seletor
     if (!surface_menu){
         Erro(2);
@@ -715,7 +801,7 @@ int main(void){
     coracao_4 = coracao_1;
     coracao_5 = coracao_1;
 
-    //recolhe os dados do arquivo e insere na variavel global Podio
+    //recolhe os dados do arquivo e insere na variavel global podio
     FILE * pont_arq;
     pont_arq = fopen( "registro.bin", "rb");//leitura do arquivo
     if( !pont_arq )	printf("arquivo não aberto\n");
@@ -723,12 +809,22 @@ int main(void){
     fclose(pont_arq);
     
     menu();
-    
+
     pont_arq = fopen( "registro.bin", "wb");//Escrita do arquivo
     if( !pont_arq )	printf("arquivo não salvo\n");
     fwrite( &podio, sizeof(RankingType), 1, pont_arq );
     fclose(pont_arq);
 
+    Mix_FreeChunk( bonus_som );
+    Mix_FreeChunk( menu_som );
+    Mix_FreeChunk( jogo_som );
+    menu_som = NULL;
+    jogo_som = NULL;
+    bonus_som = NULL;
+    Mix_HaltMusic();
+    Mix_FreeMusic( musica );
+    musica = NULL;
+    Mix_Quit();
 
     return 0;
 }
