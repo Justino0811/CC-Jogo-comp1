@@ -5,9 +5,6 @@
 tabela de erros:
     1 erro de criação de textura
     2 erro de criação de surface
-
-pagina com o id e os pontos do jogador
-
 */
 
 #include <stdio.h>
@@ -56,6 +53,9 @@ SDL_Surface* surface_nave = NULL;
 SDL_Texture* asteroide = NULL;
 SDL_Surface* surface_asteroide = NULL;
 
+SDL_Texture* asteroide2 = NULL;
+SDL_Surface* surface_asteroide2 = NULL;
+
 SDL_Texture* planeta = NULL;
 SDL_Surface* surface_planeta = NULL;
 
@@ -87,7 +87,7 @@ typedef struct
 
 typedef struct 
 {
-	JogadorType J1, J2, J3, J4, J5;
+	JogadorType J1, J2, J3, J4, J5, J6, J7, J8, J9, J10;
     int id_final;
 } RankingType;
 
@@ -133,10 +133,97 @@ bool impacto_detection(SDL_Rect obj1, SDL_Rect obj2){
 		return false;
 }
 
+void ordenar_podio(int pot, int idtf){
+	if(pot >= podio.J1.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6 = podio.J5;
+		podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3 = podio.J2;
+		podio.J2 = podio.J1;
+		podio.J1.id = idtf;
+		podio.J1.pts = pot;
+	}
+	else if(pot >= podio.J2.pts){
+	   	podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6 = podio.J5;
+	   	podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3 = podio.J2;
+		podio.J2.id = idtf;
+		podio.J2.pts = pot;
+	}
+	else if(pot >= podio.J3.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6 = podio.J5;
+	   	podio.J5 = podio.J4;
+		podio.J4 = podio.J3;
+		podio.J3.id = idtf;
+		podio.J3.pts = pot;
+	}
+	else if(pot >= podio.J4.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6 = podio.J5;
+		podio.J5 = podio.J4;
+		podio.J4.id = idtf;
+		podio.J4.pts = pot;
+	}
+	else if(pot >= podio.J5.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6 = podio.J5;
+		podio.J5.id = idtf;
+		podio.J5.pts = pot;
+	}
+	else if(pot >= podio.J6.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7 = podio.J6;
+		podio.J6.id = idtf;
+		podio.J6.pts = pot;
+	}
+	else if(pot >= podio.J7.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8 = podio.J7;
+		podio.J7.id = idtf;
+		podio.J7.pts = pot;
+	}
+	else if(pot >= podio.J8.pts){
+		podio.J10 = podio.J9;
+		podio.J9 = podio.J8;
+		podio.J8.id = idtf;
+		podio.J8.pts = pot;
+	}
+	else if(pot >= podio.J9.pts){
+		podio.J10 = podio.J9;
+		podio.J9.id = idtf;
+		podio.J9.pts = pot;
+	}
+	else if(pot >= podio.J10.pts){
+		podio.J10.id = idtf;
+		podio.J10.pts = pot;		
+	}
+}
 void jogo(void){
 	int identificacao = podio.id_final += 1;
 	// tamanho e posição da nave
-    SDL_Rect dest, rGolden, rPlaneta, rAsteroide, rC1, rC2, rC3, rC4, rC5;
+    SDL_Rect dest, rGolden, rPlaneta, rAsteroide, rAsteroide2, rC1, rC2, rC3, rC4, rC5;
 
     char buffer[40];
     SDL_Surface* Superficie_jogo = NULL;
@@ -147,7 +234,7 @@ void jogo(void){
     rPontos.w = 0;
     rPontos.x = 540;
     rPontos.y = 430;
-
+	
     SDL_Texture* Pontos_textura_2 = NULL;
     SDL_Rect rPontos2;
     rPontos2.h = 0;
@@ -185,6 +272,8 @@ void jogo(void){
     rAsteroide.h = 75;
     rPlaneta.w = 175;
     rPlaneta.h = 175;
+    rAsteroide2.w = 75;
+    rAsteroide2.h = 75;
 
     rC1.w = 75;
     rC1.h = 75;
@@ -270,7 +359,6 @@ void jogo(void){
         	velocidade = -Velocidade_Inicial;
         if(!left && right)
         	velocidade = Velocidade_Inicial;
-
         dest.x += velocidade;
 
         //colisão nave
@@ -278,19 +366,24 @@ void jogo(void){
         if(dest.x > 525 -dest.w)	dest.x = 525 -dest.w;
 
         //velocidade de cada objeto
-        
         rAsteroide.y += SPEED+12;
-        rPlaneta.y += SPEED+10;
+        rAsteroide2.y += SPEED+10;
+        rPlaneta.y += SPEED+8;
 
         if(rAsteroide.y > 800){
             pontos += 10;
             rAsteroide.x = rand() % 450;
             rAsteroide.y = -rAsteroide.h;
         }
+        if(rAsteroide2.y > 800){
+            pontos += 10;
+            rAsteroide2.x = rand() % 450;
+            rAsteroide2.y = -rAsteroide2.h-100;
+        }
         if(rPlaneta.y > 850){
             pontos += 20;
             rPlaneta.x = rand() % 350;
-            rPlaneta.y = -rPlaneta.h-100;
+            rPlaneta.y = -rPlaneta.h-150;
         }
 
         //impactos com elementos
@@ -301,18 +394,25 @@ void jogo(void){
             rAsteroide.y = -rAsteroide.h;
             rAsteroide.x = rand() % 450;
         }
+        if(impacto_detection( rAsteroide2, dest)){
+        	Mix_PlayChannel( -1, jogo_som, 0 );
+            --vidas;
+            pontos -= 20;
+            rAsteroide2.y = -rAsteroide2.h-100;
+            rAsteroide2.x = rand() % 450;
+        }
         if(impacto_detection( rPlaneta, dest)){
         	Mix_PlayChannel( -1, jogo_som, 0 );
             --vidas;
             pontos -= 30;
-            rPlaneta.y = -rPlaneta.h;
+            rPlaneta.y = -rPlaneta.h-150;
             rPlaneta.x = rand() % 350;
         }
 
         //bonus
         bonus = SDL_TICKS_PASSED(SDL_GetTicks(), tempo_bonus);
 
-        if(SDL_HasIntersection(&dest, &rGolden)){
+        if(impacto_detection(rGolden, dest)){
         	Mix_PlayChannel( -1, bonus_som, 0 );
             SPEED += 5;
             pontos += 500;
@@ -347,6 +447,7 @@ void jogo(void){
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_jogo, NULL, NULL);
         SDL_RenderCopy(render, asteroide, NULL, &rAsteroide);
+        SDL_RenderCopy(render, asteroide2, NULL, &rAsteroide2);
         SDL_RenderCopy(render, planeta, NULL, &rPlaneta);
         SDL_RenderCopy(render, nave, NULL, &dest);
         SDL_RenderCopy(render, golden_record, NULL, &rGolden);
@@ -414,36 +515,7 @@ void jogo(void){
         SDL_Delay(1000/FPS);
     }
 
-    if(pontos >= podio.J1.pts){
-		podio.J5 = podio.J4;
-		podio.J4 = podio.J3;
-		podio.J3 = podio.J2;
-		podio.J2 = podio.J1;
-		podio.J1.id = identificacao;
-		podio.J1.pts = pontos;
-	}
-	else if(pontos >= podio.J2.pts){
-	   	podio.J5 = podio.J4;
-		podio.J4 = podio.J3;
-		podio.J3 = podio.J2;
-		podio.J2.id = identificacao;
-		podio.J2.pts = pontos;
-	}
-	else if(pontos >= podio.J3.pts){
-	   	podio.J5 = podio.J4;
-		podio.J4 = podio.J3;
-		podio.J3.id = identificacao;
-		podio.J3.pts = pontos;
-	}
-	else if(pontos >= podio.J4.pts){
-		podio.J5 = podio.J4;
-		podio.J4.id = identificacao;
-		podio.J4.pts = pontos;
-	}
-	else if(pontos >= podio.J5.pts){
-		podio.J5.id = identificacao;
-		podio.J5.pts = pontos;
-	}
+    ordenar_podio(pontos, identificacao);
 
     SDL_FreeSurface(Superficie_jogo);
     return;
@@ -460,40 +532,75 @@ void ranking(void){
         rTitulo.x = 180;
         rTitulo.y = 175;
 
-        SDL_Texture* primeiro_textura = NULL;
-        SDL_Rect rPrimeiro;
-        rPrimeiro.h = 0;
-        rPrimeiro.w = 0;
-        rPrimeiro.x = 187;
-        rPrimeiro.y = 200;
+        SDL_Texture* t1 = NULL;
+        SDL_Rect r1;
+        r1.h = 0;
+        r1.w = 0;
+        r1.x = 187;
+        r1.y = 200;
 
-        SDL_Texture* segundo_textura = NULL;
-        SDL_Rect rSegundo;
-        rSegundo.h = 0;
-        rSegundo.w = 0;
-        rSegundo.x = 180;
-        rSegundo.y = 225;
+        SDL_Texture* t2 = NULL;
+        SDL_Rect r2;
+        r2.h = 0;
+        r2.w = 0;
+        r2.x = 180;
+        r2.y = 225;
 
-        SDL_Texture* terceiro_textura = NULL;
-        SDL_Rect rTerceiro;
-        rTerceiro.h = 0;
-        rTerceiro.w = 0;
-        rTerceiro.x = 180;
-        rTerceiro.y = 250;
+        SDL_Texture* t3 = NULL;
+        SDL_Rect r3;
+        r3.h = 0;
+        r3.w = 0;
+        r3.x = 180;
+        r3.y = 250;
 
-        SDL_Texture* quarto_textura = NULL;
-        SDL_Rect rQuarto;
-        rQuarto.h = 0;
-        rQuarto.w = 0;
-        rQuarto.x = 180;
-        rQuarto.y = 275;
+        SDL_Texture* t4 = NULL;
+        SDL_Rect r4;
+        r4.h = 0;
+        r4.w = 0;
+        r4.x = 180;
+        r4.y = 275;
 
-        SDL_Texture* quinto_textura = NULL;
-        SDL_Rect rQuinto;
-        rQuinto.h = 0;
-        rQuinto.w = 0;
-        rQuinto.x = 180;
-        rQuinto.y = 300;
+        SDL_Texture* t5 = NULL;
+        SDL_Rect r5;
+        r5.h = 0;
+        r5.w = 0;
+        r5.x = 180;
+        r5.y = 300;
+
+        SDL_Texture* t6 = NULL;
+        SDL_Rect r6;
+        r6.h = 0;
+        r6.w = 0;
+        r6.x = 180;
+        r6.y = 325;
+
+        SDL_Texture* t7 = NULL;
+        SDL_Rect r7;
+        r7.h = 0;
+        r7.w = 0;
+        r7.x = 180;
+        r7.y = 350;
+    	        
+        SDL_Texture* t8 = NULL;
+        SDL_Rect r8;
+        r8.h = 0;
+        r8.w = 0;
+        r8.x = 180;
+        r8.y = 375;
+
+    	SDL_Texture* t9 = NULL;
+        SDL_Rect r9;
+        r9.h = 0;
+        r9.w = 0;
+        r9.x = 180;
+        r9.y = 400;
+
+        SDL_Texture* t10 = NULL;
+        SDL_Rect r10;
+        r10.h = 0;
+        r10.w = 0;
+        r10.x = 187;
+        r10.y = 425;
 
     	while(1){
         SDL_Event event;
@@ -514,38 +621,69 @@ void ranking(void){
         
         sprintf(buffer, "1    %d  %d", podio.J1.id, podio.J1.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
-        primeiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
-        SDL_QueryTexture(primeiro_textura, NULL, NULL, &rPrimeiro.w, &rPrimeiro.h);
+        t1 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t1, NULL, NULL, &r1.w, &r1.h);
         
         sprintf(buffer, "2    %d  %d", podio.J2.id, podio.J2.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
-        segundo_textura = SDL_CreateTextureFromSurface(render, Superficie);
-        SDL_QueryTexture(segundo_textura, NULL, NULL, &rSegundo.w, &rSegundo.h);
+        t2 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t2, NULL, NULL, &r2.w, &r2.h);
         
         sprintf(buffer, "3    %d  %d", podio.J3.id, podio.J3.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
-        terceiro_textura = SDL_CreateTextureFromSurface(render, Superficie);
-        SDL_QueryTexture(terceiro_textura, NULL, NULL, &rTerceiro.w, &rTerceiro.h);
+        t3 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t3, NULL, NULL, &r3.w, &r3.h);
 
         sprintf(buffer, "4    %d  %d", podio.J4.id, podio.J4.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
-        quarto_textura = SDL_CreateTextureFromSurface(render, Superficie);
-        SDL_QueryTexture(quarto_textura, NULL, NULL, &rQuarto.w, &rQuarto.h);
+        t4 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t4, NULL, NULL, &r4.w, &r4.h);
 
         sprintf(buffer, "5    %d  %d", podio.J5.id, podio.J5.pts);
         Superficie = TTF_RenderText_Solid(font, buffer, branco);
-        quinto_textura = SDL_CreateTextureFromSurface(render, Superficie);
-        SDL_QueryTexture(quinto_textura, NULL, NULL, &rQuinto.w, &rQuinto.h);
+        t5 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t5, NULL, NULL, &r5.w, &r5.h);
+        
+        sprintf(buffer, "6    %d  %d", podio.J6.id, podio.J6.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        t6 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t6, NULL, NULL, &r6.w, &r6.h);
+        
+        sprintf(buffer, "7    %d  %d", podio.J7.id, podio.J7.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        t7 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t7, NULL, NULL, &r7.w, &r7.h);
+        
+        sprintf(buffer, "8    %d  %d", podio.J8.id, podio.J8.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        t8 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t8, NULL, NULL, &r8.w, &r8.h);
+        
+        sprintf(buffer, "9    %d  %d", podio.J9.id, podio.J9.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        t9 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t9, NULL, NULL, &r9.w, &r9.h);
+        
+        sprintf(buffer, "10   %d  %d", podio.J10.id, podio.J10.pts);
+        Superficie = TTF_RenderText_Solid(font, buffer, branco);
+        t10 = SDL_CreateTextureFromSurface(render, Superficie);
+        SDL_QueryTexture(t10, NULL, NULL, &r10.w, &r10.h);
         
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_ranking, NULL, NULL);
         SDL_RenderCopy(render, Titulo_textura, NULL, &rTitulo);
-        SDL_RenderCopy(render, primeiro_textura, NULL, &rPrimeiro);
-        SDL_RenderCopy(render, segundo_textura, NULL, &rSegundo);
-        SDL_RenderCopy(render, terceiro_textura, NULL, &rTerceiro);
-        SDL_RenderCopy(render, quarto_textura, NULL, &rQuarto);
-        SDL_RenderCopy(render, quinto_textura, NULL, &rQuinto);
+        SDL_RenderCopy(render, t1, NULL, &r1);
+        SDL_RenderCopy(render, t2, NULL, &r2);
+        SDL_RenderCopy(render, t3, NULL, &r3);
+        SDL_RenderCopy(render, t4, NULL, &r4);
+        SDL_RenderCopy(render, t5, NULL, &r5);
+        SDL_RenderCopy(render, t6, NULL, &r6);
+        SDL_RenderCopy(render, t7, NULL, &r7);
+        SDL_RenderCopy(render, t8, NULL, &r8);
+        SDL_RenderCopy(render, t9, NULL, &r9);
+        SDL_RenderCopy(render, t10, NULL, &r10);
         SDL_RenderPresent(render);
+        SDL_Delay(1000/FPS);
     	}
 }
 
@@ -564,6 +702,7 @@ void controles(void){
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_como_jogar, NULL, NULL);
         SDL_RenderPresent(render);
+        SDL_Delay(1000/FPS);
     }
 }
 
@@ -582,6 +721,7 @@ void creditos(void){
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_creditos, NULL, NULL);
         SDL_RenderPresent(render);
+        SDL_Delay(1000/FPS);
     }
 }
 
@@ -589,7 +729,7 @@ void menu(void){
     int seletor = 0;
     SDL_Rect dest_caixa;
 
-    // obter e dimensionar as dimensões do jogador
+    // obter e dimensionar as dimensões da caixa de seleção
     SDL_QueryTexture(caixa, NULL, NULL, &dest_caixa.w, &dest_caixa.h);
     dest_caixa.w = 301;
     
@@ -639,7 +779,6 @@ void menu(void){
                         case 3://creditos
                             creditos();
                             break;
-
                     }
                     break;
                 }
@@ -704,7 +843,7 @@ int main(void){
     jogo_som = Mix_LoadWAV("8bit_bomb_explosion.wav");
 
     Mix_VolumeChunk(jogo_som, 48);
-
+    Mix_VolumeChunk(bonus_som, 64);
     Mix_PlayMusic( musica, -1 );
     Mix_VolumeMusic(MIX_MAX_VOLUME/4);
 
@@ -809,6 +948,19 @@ int main(void){
     asteroide = SDL_CreateTextureFromSurface(render, surface_asteroide);
     SDL_FreeSurface(surface_asteroide);
     if (!asteroide){
+        Erro(1);
+        return 1;
+    }
+
+    surface_asteroide2 = IMG_Load("asteroide 2.png");
+    if (!surface_asteroide2){
+        Erro(2);
+        return 1;
+    }
+
+    asteroide2 = SDL_CreateTextureFromSurface(render, surface_asteroide2);
+    SDL_FreeSurface(surface_asteroide2);
+    if (!asteroide2){
         Erro(1);
         return 1;
     }
