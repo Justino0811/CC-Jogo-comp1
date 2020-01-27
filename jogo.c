@@ -24,7 +24,9 @@ afazeres
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_image.h>
@@ -32,8 +34,10 @@ afazeres
 #define JANELA_W (700)
 #define JANELA_H (700)
 
-#define SPEED (13) 
 #define FPS (30)	//quadros por segundo
+#define SetBonus (10) //a cada quantos segundos vem o bonus
+#define VIDAS (5)
+#define Velocidade_Inicial (13)
 
 SDL_Window* janela = NULL;
 SDL_Renderer* render = NULL;
@@ -48,6 +52,16 @@ SDL_Surface* background_jogo = NULL;
 SDL_Texture* textura_fundo_jogo = NULL;
 SDL_Texture* nave = NULL;
 SDL_Surface* surface_nave = NULL;
+
+SDL_Texture* asteroide = NULL;
+SDL_Surface* surface_asteroide = NULL;
+
+SDL_Texture* planeta = NULL;
+SDL_Surface* surface_planeta = NULL;
+
+SDL_Texture* golden_record = NULL;
+SDL_Surface* surface_Golden_Record = NULL;
+
 
 SDL_Surface* background_creditos = NULL;
 SDL_Texture* textura_fundo_creditos = NULL;
@@ -81,19 +95,35 @@ void Erro(int codigo){
 void jogo(void){    
 	// tamanho e posição da nave
     SDL_Rect dest;
-    SDL_QueryTexture(nave, NULL, NULL, &dest.w, &dest.h);
-    dest.w = 75;
-    dest.h = 75;
+    SDL_Rect rGolden;
+    SDL_Rect rPlaneta;
+    SDL_Rect rAsteroide;
 
-    dest.x = 262;
+    srand(time(NULL));
+
+    dest.w = 75;//define o tamanho da nave
+    dest.h = 75;
+    dest.x = 262;//inicializa a posição da nave no centro da area do jogo
     dest.y = 610;
 
-    int velocidade;
-    bool left;
-    bool right;
+    rGolden.w = 75;//define o tamanho de cada objeto que aparecerá na tela
+    rGolden.h = 75;
+    rAsteroide.w = 75;
+    rAsteroide.h = 75;
+    rPlaneta.w = 175;
+    rPlaneta.h = 175;
+
+    rGolden.x = rand() % 450; //inicializa a posição horizonal do bonus aleatoriamente
+    rGolden.y = -80;
+
+    int velocidade = 0, pontos = 0, vidas = VIDAS, SPEED = Velocidade_Inicial;
+    bool left = false, right = false, bonus, impacto = false;
 
     // definido para 1 quando o botão de fechar a janela é pressionado
     int encerrar = 0;
+
+    Uint32 tempo_bonus = SDL_GetTicks() + SetBonus*1000;
+    Uint32 tempo_ant, tempo;
 
     while(!encerrar){
         SDL_Event event;
@@ -114,7 +144,10 @@ void jogo(void){
                 case SDL_SCANCODE_D:
                 case SDL_SCANCODE_RIGHT:
                     right = true;
-                    break;               
+                    break;
+                case SDL_SCANCODE_ESCAPE:
+                    encerrar = 1;
+                    break;         
                 }
                 break;
             case SDL_KEYUP:
@@ -133,22 +166,83 @@ void jogo(void){
             }
         }
 
-        //movimentação
+        if(vidas < 0)   encerrar = 1;
+
+        //relogio
+        tempo_ant = tempo;
+        tempo = SDL_GetTicks()/1000;
+        if(tempo > tempo_ant)   printf("%d segundos   %d pontos   %d Vidas\n", tempo, pontos, vidas);
+
+        //movimentação nave
         velocidade = 0;
         if(left && !right)
-        	velocidade = -SPEED;
+        	velocidade = -Velocidade_Inicial;
         if(!left && right)
-        	velocidade = SPEED;
+        	velocidade = Velocidade_Inicial;
 
         dest.x += velocidade;
 
-        //colisão
+        //colisão nave
         if(dest.x < 0)	dest.x = 0;
         if(dest.x > 525 -dest.w)	dest.x = 525 -dest.w;
 
+        //velocidade de cada objeto
+        
+        rAsteroide.y += SPEED+12;
+        rPlaneta.y += SPEED+10;
+
+        if(rAsteroide.y > 800){
+            pontos += 10;
+            rAsteroide.x = rand() % 450;
+            rAsteroide.y = -rAsteroide.h;
+        }
+        if(rPlaneta.y > 850){
+            pontos += 20;
+            rPlaneta.x = rand() % 350;
+            rPlaneta.y = -rPlaneta.h;
+        }
+
+        //impacto com elementos
+        if(SDL_HasIntersection(&dest, &rAsteroide)){
+            --vidas;
+            pontos -= 20;
+            rAsteroide.y = -rAsteroide.h;
+            rAsteroide.x = rand() % 450;
+        }
+        if(SDL_HasIntersection(&dest, &rPlaneta)){
+            --vidas;
+            pontos -= 30;
+            rPlaneta.y = -rPlaneta.h;
+            rPlaneta.x = rand() % 350;
+        }
+
+        //bonus
+
+        bonus = SDL_TICKS_PASSED(SDL_GetTicks(), tempo_bonus);
+
+        if(SDL_HasIntersection(&dest, &rGolden)){
+            SPEED += 5;
+            pontos += 500;
+            rGolden.y = 800;
+            printf("bonus\n");
+        }
+
+        if(bonus){
+            rGolden.y += SPEED+10;
+        }
+
+        if(rGolden.y > 800){
+            bonus = false;
+            tempo_bonus = SDL_GetTicks() + SetBonus*1000;
+            rGolden.x = rand() % 450;
+            rGolden.y = -80;
+        }
         SDL_RenderClear(render);
         SDL_RenderCopy(render, textura_fundo_jogo, NULL, NULL);
+        SDL_RenderCopy(render, asteroide, NULL, &rAsteroide);
+        SDL_RenderCopy(render, planeta, NULL, &rPlaneta);
         SDL_RenderCopy(render, nave, NULL, &dest);
+        SDL_RenderCopy(render, golden_record, NULL, &rGolden);
         SDL_RenderPresent(render);
 
         SDL_Delay(1000/FPS);
@@ -239,6 +333,13 @@ void menu(void){
                 case SDL_SCANCODE_UP:
                     seletor--;
                     if(seletor<0) seletor = 3;
+                    break;
+                case SDL_SCANCODE_ESCAPE:
+                    SDL_DestroyTexture(caixa);
+                    SDL_DestroyRenderer(render);
+                    SDL_DestroyWindow(janela);
+                    SDL_Quit();
+                    return;
                     break;
                 case SDL_SCANCODE_RETURN:
                     switch(seletor){
@@ -399,6 +500,46 @@ int main(void){
         Erro(1);
         return 1;
     }
+
+    surface_asteroide = IMG_Load("asteroide.png");
+    if (!surface_asteroide){
+        Erro(2);
+        return 1;
+    }
+
+    asteroide = SDL_CreateTextureFromSurface(render, surface_asteroide);
+    SDL_FreeSurface(surface_asteroide);
+    if (!asteroide){
+        Erro(1);
+        return 1;
+    }
+
+    surface_planeta = IMG_Load("planeta.png");
+    if (!surface_planeta){
+        Erro(2);
+        return 1;
+    }
+
+    planeta = SDL_CreateTextureFromSurface(render, surface_planeta);
+    SDL_FreeSurface(surface_planeta);
+    if (!planeta){
+        Erro(1);
+        return 1;
+    }
+
+    surface_Golden_Record = IMG_Load("golden record.png");
+    if (!surface_Golden_Record){
+        Erro(2);
+        return 1;
+    }
+
+    golden_record = SDL_CreateTextureFromSurface(render, surface_Golden_Record);
+    SDL_FreeSurface(surface_Golden_Record);
+    if (!golden_record){
+        Erro(1);
+        return 1;
+    }
+
 
     menu();
     return 0;
